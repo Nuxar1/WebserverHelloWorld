@@ -1,7 +1,12 @@
 from fastapi import FastAPI
-import psycopg
+import mariadb
 
-conn = psycopg.connect(host="db", user="postgres", password="postgres")
+conn = mariadb.connect(
+    user="mariadb",
+    password="mariadb",
+    host="db",
+    database="app"
+)
 
 app = FastAPI()
 
@@ -27,15 +32,15 @@ def read_db_test():
 
         return cur.fetchall()
 
-@app.get("/key_login")
-async def key_login(key: str):
-    if not key.isalnum():
-        return {"error": "Invalid key"}
+# @app.get("/key_login")
+# async def key_login(key: str):
+#     if not key.isalnum():
+#         return {"error": "Invalid key"}
     
-    async with conn.cursor() as cur:
-        await cur.execute("SELECT * FROM keys WHERE key = %s", (key,))
+#     async with conn.cursor() as cur:
+#         await cur.execute("SELECT * FROM keys WHERE key = %s", (key,))
 
-        if cur.rowcount == 0:
-            return {"error": "Invalid key"}
+#         if cur.rowcount == 0:
+#             return {"error": "Invalid key"}
         
-        return {"success": "Logged in!"}
+#         return {"success": "Logged in!"}

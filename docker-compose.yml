@@ -1,5 +1,6 @@
 services:
   app:
+    restart: always
     build:
       context: ./
       dockerfile: Dockerfile
@@ -13,25 +14,28 @@ services:
     volumes:
       - ./app:/code/app:ro
     networks:
-      - postgres
+      - mariadb
       - traefik
     ports:
       - "8081:80"
 
   db:
+    restart: always
     build:
       context: ./build/db
       dockerfile: Dockerfile
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=app
+      - MARIADB_ROOT_PASSWORD=rootpassword
+      - MARIADB_DATABASE=app
+      - MARIADB_USER=mariadb
+      - MARIADB_PASSWORD=mariadb
     volumes:
-      - postgres:/var/lib/postgresql/data
+      - mariadb:/var/lib/mysql
     networks:
-      - postgres
+      - mariadb
 
   traefik:
+    restart: always
     image: traefik:3.1
     command:
       # Uncomment: Increase log level
@@ -74,10 +78,12 @@ services:
       - traefik
 
 volumes:
-  postgres:
+  mariadb:
 
 networks:
-  postgres:
+  mariadb:
+    name: mariadb
+    external: false
   traefik:
     name: traefik
     external: false
