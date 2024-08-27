@@ -27,10 +27,15 @@ def read_db_test():
 
         return cur.fetchall()
 
-
 @app.get("/key_login")
 async def key_login(key: str):
-    if (not key.isalnum()) and (not key.isascii()):
-        return {"error": "Invalid token"}
+    if not key.isalnum():
+        return {"error": "Invalid key"}
+    
+    async with conn.cursor() as cur:
+        await cur.execute("SELECT * FROM keys WHERE key = %s", (key,))
 
-    return {"OK": key}
+        if cur.rowcount == 0:
+            return {"error": "Invalid key"}
+        
+        return {"success": "Logged in!"}

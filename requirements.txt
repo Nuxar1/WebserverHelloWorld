@@ -1,2 +1,3 @@
 fastapi[standard]==0.112.2
 psycopg[binary,pool]==3.2.1
+sqlmodel==0.0.21
