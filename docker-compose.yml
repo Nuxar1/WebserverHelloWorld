@@ -5,10 +5,18 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - db
-    ports:
-      - "80:80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=Host(`api.docker.localhost`)"
+      - "traefik.http.routers.app.entrypoints=websecure"
+      - "traefik.http.routers.app.tls.certresolver=myresolver"
+    volumes:
+      - ./app:/code/app:ro
     networks:
       - postgres
+      - traefik
+    ports:
+      - "8081:80"
 
   db:
     build:
@@ -19,13 +27,57 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=app
     volumes:
-      - db:/var/lib/postgresql/data
+      - postgres:/var/lib/postgresql/data
     networks:
-      - db
-    # Acess the database with the following command:
-    # docker compose exec -it db psql -h localhost -p 5432 -U postgres
+      - postgres
+
+  traefik:
+    image: traefik:3.1
+    command:
+      # Uncomment: Increase log level
+      - "--log.level=DEBUG"
+      # Uncomment: Traefik will listen on port 8080 by default for API request.
+      - "--api.insecure=true"
+      # Enabling Docker provider
+      - "--providers.docker=true"
+      - "--providers.docker.network=traefik"
+      # Do not expose containers unless explicitly told so
+      - "--providers.docker.exposedbydefault=false"
+      # Traefik will listen to incoming request on the port 443 (https)
+      - "--entrypoints.websecure.address=:443"
+
+      # # Enable a tls challenge named "myresolver"
+      # - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      # # Uncomment: Use fake certificate when testing
+      # - "--certificatesresolvers.myresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+      # # Specify certificate admin email
+      # - "--certificatesresolvers.myresolver.acme.email=letsencrypt@asdf.de"
+      # # Tell to store the certificate on a path under our volume
+      # - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+      # Enable a tls challenge named "myresolver"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=false"
+
+      # Redirect everything to https
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entryPoint.to=websecure
+      - --entrypoints.web.http.redirections.entryPoint.scheme=https
+      - --entrypoints.web.http.redirections.entrypoint.permanent=true
+
+    ports:
+      - "80:80"
+      - "443:443"
+      # Insecure
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - traefik
 
 volumes:
-  db:
+  postgres:
+
 networks:
-  db:
+  postgres:
+  traefik:
+    name: traefik
+    external: false
